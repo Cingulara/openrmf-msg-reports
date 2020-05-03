@@ -120,6 +120,9 @@ namespace openrmf_msg_report
                         if (!string.IsNullOrEmpty(sg.rawNessusFile)) {
                             List<NessusPatchData> patchDataList = NessusPatchLoader.LoadPatchData(sg.rawNessusFile);
                             if (patchDataList != null && patchDataList.Count > 0) {
+                                // delete the old data
+                                bool deleted = _reportRepo.DeletePatchScanDataBySystemGroup(sg.InternalId.ToString()).Result;
+                                // put in all the new data
                                 foreach (NessusPatchData data in patchDataList) {
                                     data.systemGroupId = sg.InternalId.ToString();
                                     result = _reportRepo.AddPatchScanData(data).Result;
