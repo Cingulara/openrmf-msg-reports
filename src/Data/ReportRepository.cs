@@ -22,9 +22,9 @@ namespace openrmf_msg_report.Data {
         {
             try
             {
-                ObjectId internalId = GetInternalId(id);
+                //ObjectId internalId = GetInternalId(id);
                 return await _context.ACASScanReports
-                        .Find(SystemGroup => SystemGroup.InternalId == internalId).ToListAsync();
+                        .Find(data => data.systemGroupId == id).ToListAsync();
             }
             catch (Exception ex)
             {

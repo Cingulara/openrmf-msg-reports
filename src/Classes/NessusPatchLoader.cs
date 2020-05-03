@@ -107,6 +107,7 @@ namespace openrmf_msg_report.Classes
                             colAttributes = child.Attributes;
                             patchData = new NessusPatchData();
                             // set the hostname and other host data for every single record
+                            patchData.reportName = reportName;
                             patchData.hostname = hostname;
                             patchData.operatingSystem = operatingSystem;
                             patchData.ipAddress = SanitizeHostname(ipAddress); // if an IP clean up the information octets
