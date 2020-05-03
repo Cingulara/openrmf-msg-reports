@@ -64,7 +64,7 @@ namespace openrmf_msg_report.Data {
             {
                 DeleteResult actionResult 
                     = await _context.ACASScanReports.DeleteManyAsync(
-                        Builders<NessusPatchData>.Filter.Eq("Id", id));
+                        Builders<NessusPatchData>.Filter.Eq("systemGroupId", id));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;
@@ -83,7 +83,7 @@ namespace openrmf_msg_report.Data {
             {
                 DeleteResult actionResult 
                     = await _context.ACASScanReports.DeleteManyAsync(
-                        Builders<NessusPatchData>.Filter.Eq("Id", id));
+                        Builders<NessusPatchData>.Filter.Eq("systemGroupId", id));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;

@@ -121,6 +121,7 @@ namespace openrmf_msg_report
                             List<NessusPatchData> patchDataList = NessusPatchLoader.LoadPatchData(sg.rawNessusFile);
                             if (patchDataList != null && patchDataList.Count > 0) {
                                 foreach (NessusPatchData data in patchDataList) {
+                                    data.systemGroupId = sg.InternalId.ToString();
                                     result = _reportRepo.AddPatchScanData(data).Result;
                                     if (result != null) {
                                         logger.Info("Report Message Client: Added scan plugin {0} for system group {1}", result.pluginId, result.systemGroupId);
