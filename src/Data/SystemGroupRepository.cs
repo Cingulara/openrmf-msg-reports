@@ -17,20 +17,6 @@ namespace openrmf_msg_report.Data {
             _context = new SystemGroupContext(settings);
         }
 
-        public async Task<IEnumerable<SystemGroup>> GetAllSystemGroups()
-        {
-            try
-            {
-                return await _context.SystemGroups
-                        .Find(_ => true).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
-        }
-
         private ObjectId GetInternalId(string id)
         {
             ObjectId internalId;

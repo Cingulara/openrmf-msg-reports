@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 namespace openrmf_msg_report.Data {
     public interface ISystemGroupRepository
     {
-        Task<IEnumerable<SystemGroup>> GetAllSystemGroups();
         Task<SystemGroup> GetSystemGroup(string id);
     }
 }

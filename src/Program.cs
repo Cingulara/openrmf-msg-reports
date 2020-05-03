@@ -81,7 +81,7 @@ namespace openrmf_msg_report
                             logger.Info("Successfully deleted the system patch scan data for System Group {0}", systemGroupId);
                         } 
                         else {
-                            logger.Warn("Did not delete the system patch scan data for System Group {0}", systemGroupId);
+                            logger.Warn("Did not delete the system patch scan data for System Group {0}. Maybe there is no data yet?", systemGroupId);
                         }
                     }
                     else {
@@ -94,46 +94,59 @@ namespace openrmf_msg_report
                 }
             };
 
-            // update the # of checklists up or down based on the add or delete
-            // openrmf.system.count.add -- increment the # of checklists in a system
-            // openrmf.system.count.delete -- decrement the # of checklists in a system
-            // EventHandler<MsgHandlerEventArgs> updateSystemPatchScanData = (sender, natsargs) =>
-            // {
-            //     try {
-            //         // print the message
-            //         logger.Info("NATS Msg Checklists: {0}", natsargs.Message.Subject);
-            //         logger.Info("NATS Msg system data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
+            // update the Nessus ACAS Patch Data listing in the database
+            // openrmf.system.patchscan -- take the system group ID from the data and process away
+            EventHandler<MsgHandlerEventArgs> updateSystemPatchScanData = (sender, natsargs) =>
+            {
+                try {
+                    // print the message
+                    logger.Info("NATS Msg Checklists: {0}", natsargs.Message.Subject);
+                    logger.Info("NATS Msg system data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
                     
-            //         SystemGroup sg;
-            //         // setup the MondoDB connection
-            //         Settings s = new Settings();
-            //         s.ConnectionString = Environment.GetEnvironmentVariable("MONGODBCONNECTION");
-            //         s.Database = Environment.GetEnvironmentVariable("MONGODB");
-            //         // setup the database repo
-            //         SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
-            //         sg = _systemGroupRepo.GetSystemGroup(Encoding.UTF8.GetString(natsargs.Message.Data)).Result;
-            //         if (sg != null) {
-            //             if (natsargs.Message.Subject.EndsWith(".add"))
-            //                 sg.numberOfChecklists = sg.numberOfChecklists + 1;
-            //             else if (natsargs.Message.Subject.EndsWith(".delete"))
-            //                 sg.numberOfChecklists = sg.numberOfChecklists - 1;
-            //             // update the date and get back to work!
-            //             var result = _systemGroupRepo.UpdateSystemGroup(Encoding.UTF8.GetString(natsargs.Message.Data),sg);
-            //         } 
-            //         else {
-            //             logger.Warn("Warning: bad System Group ID when updating the checklist count {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
-            //         }
-            //     }
-            //     catch (Exception ex) {
-            //         // log it here
-            //         logger.Error(ex, "Error retrieving system group record for system group id {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
-            //     }
-            // };
+                    SystemGroup sg;
+                    // setup the MondoDB connection
+                    Settings s = new Settings();
+                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
+                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    // setup the database repo
+                    SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
+                    sg = _systemGroupRepo.GetSystemGroup(Encoding.UTF8.GetString(natsargs.Message.Data)).Result;
+                    if (sg != null) {
+                        // use the Report database connection
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        ReportRepository _reportRepo = new ReportRepository(s);
+                        NessusPatchData result;
+                        if (!string.IsNullOrEmpty(sg.rawNessusFile)) {
+                            List<NessusPatchData> patchDataList = NessusPatchLoader.LoadPatchData(sg.rawNessusFile);
+                            if (patchDataList != null && patchDataList.Count > 0) {
+                                foreach (NessusPatchData data in patchDataList) {
+                                    result = _reportRepo.AddPatchScanData(data).Result;
+                                    if (result != null) {
+                                        logger.Info("Report Message Client: Added scan plugin {0} for system group {1}", result.pluginId, result.systemGroupId);
+                                    }
+                                }
+                            } else {
+                                logger.Warn("Warning: Nessus Data loading was empty for System Group {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                            }
+                        } else {
+                            logger.Warn("Warning: Nessus Data is empty for System Group {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                        }
+                    } 
+                    else {
+                        logger.Warn("Warning: bad System Group ID when updating the patch data {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                    }
+                }
+                catch (Exception ex) {
+                    // log it here
+                    logger.Error(ex, "Error retrieving system group record for system group id {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                }
+            };
             
             logger.Info("Report Message Client: setting up the OpenRMF System Delete for Report subscription");
             IAsyncSubscription asyncSystemDelete = c.SubscribeAsync("openrmf.system.delete", deleteSystemData);
-            // logger.Info("setting up the OpenRMF System # checklists subscription");
-            // IAsyncSubscription asyncSystemPatchScan = c.SubscribeAsync("openrmf.system.patchscan", updateSystemPatchScanData);
+            logger.Info("Report Message Client: setting up the OpenRMF Nessus ACAS Patch Scan for Report subscription");
+            IAsyncSubscription asyncSystemPatchScan = c.SubscribeAsync("openrmf.system.patchscan", updateSystemPatchScanData);
         }
         private static ObjectId GetInternalId(string id)
         {
