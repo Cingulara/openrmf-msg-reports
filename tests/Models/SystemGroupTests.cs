@@ -1,5 +1,5 @@
 using Xunit;
-using openrmf_msg_system.Models;
+using openrmf_msg_report.Models;
 using System;
 
 namespace tests.Models
