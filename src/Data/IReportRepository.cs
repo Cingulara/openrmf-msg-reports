@@ -14,7 +14,7 @@ namespace openrmf_msg_report.Data {
         Task<VulnerabilityReport> AddChecklistVulnerabilityData(VulnerabilityReport data);
         Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data);
         Task<bool> DeleteChecklistVulnerabilityDataBySystemGroup(string systemGroupId);
-        Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string internalId);
+        Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string artifactId, string vulnid);
         Task<IEnumerable<VulnerabilityReport>> FindChecklistVulnerabilityData(string systemGroupId, string vulnid);
     }
 }

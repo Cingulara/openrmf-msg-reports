@@ -109,19 +109,18 @@ namespace openrmf_msg_report.Data {
         }
 
         public async Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data){
-            
-            var filter = Builders<VulnerabilityReport>.Filter.Eq(s => s.InternalId, data.InternalId);
             try
             {
-                // get the old InternalId as we are going off artifactid not InternalId for this
-                var oldScore = await GetChecklistVulnerabilityData(data.systemGroupId, data.InternalId.ToString());
-                if (oldScore != null){
-                    data.InternalId = oldScore.InternalId;
+                // get the old InternalId as we are going off InternalId and SystemGroupId for this
+                var oldVulnData = await GetChecklistVulnerabilityData(data.systemGroupId, data.artifactId, data.vulnid);
+                if (oldVulnData != null){
+                    data.InternalId = oldVulnData.InternalId;
                 }
                 else
                 {
                     return false;
                 }
+                var filter = Builders<VulnerabilityReport>.Filter.Eq(s => s.InternalId, data.InternalId);
                 var actionResult = await _context.VulnerabilityReports.ReplaceOneAsync(filter, data);
                 if (actionResult.ModifiedCount == 0) { //never was entered, so Insert
                     data.created = DateTime.Now;
@@ -159,10 +158,10 @@ namespace openrmf_msg_report.Data {
         }
 
 
-        public async Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string internalId){
+        public async Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string artifactId, string vulnid){
             try
             {
-                return await _context.VulnerabilityReports.Find(v => v.InternalId == GetInternalId(internalId) && v.systemGroupId == systemGroupId).FirstOrDefaultAsync();
+                return await _context.VulnerabilityReports.Find(v => v.vulnid == vulnid && v.artifactId == artifactId && v.systemGroupId == systemGroupId).FirstOrDefaultAsync();
             }
             catch (Exception ex)
             {
