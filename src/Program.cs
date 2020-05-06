@@ -11,6 +11,7 @@ using openrmf_msg_report.Data;
 using MongoDB.Bson;
 using openrmf_msg_report.Classes;
 using Newtonsoft.Json;
+using System.Linq;
 
 namespace openrmf_msg_report
 {
@@ -147,10 +148,101 @@ namespace openrmf_msg_report
                 }
             };
             
+            // Setup a new Score record based on a new checklist uploaded
+            // This is called from the Upload API to say "hey I have a new checklist, score it"
+            EventHandler<MsgHandlerEventArgs> newChecklistVulnerabilities = (sender, natsargs) =>
+            {
+                try {
+                    // print the message
+                    logger.Info("New NATS subject: {0}", natsargs.Message.Subject);
+                    logger.Info("New NATS data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
+                    Artifact checklist = GetChecklist(c, Encoding.UTF8.GetString(natsargs.Message.Data));
+                    if (checklist.CHECKLIST == null)
+                        checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
+                    if (checklist != null && checklist.CHECKLIST != null) {
+                        
+                        
+                        logger.Info("Saving new vulnerability information for artifactId {0}", checklist.InternalId.ToString());
+                        
+                        logger.Info("Vulnerability information successfully saved for artifactId {0}", checklist.InternalId.ToString());
+                    }
+                }
+                catch (Exception ex) {
+                    // log it here
+                    logger.Error(ex, "Error saving new scoring information for artifactId {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                }
+            };
+
+            // Setup an updated Score record based on an updated checklist uploaded
+            // This is called from the Upload API to say "hey I have an updated checklist, you may want to update your scoring"
+            EventHandler<MsgHandlerEventArgs> updateChecklistVulnerabilities = (sender, natsargs) =>
+            {
+                try {
+                    // print the message
+                    logger.Info(natsargs.Message.Subject);
+                    logger.Info(Encoding.UTF8.GetString(natsargs.Message.Data));
+                    Artifact checklist = GetChecklist(c, Encoding.UTF8.GetString(natsargs.Message.Data));
+                    if (checklist.CHECKLIST == null)
+                        checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
+                    if (checklist != null && checklist.CHECKLIST != null) {
+                        List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
+                        VulnerabilityReport vulnRecord; // put the individual record into
+                        //VULN vulnerability;
+                        //vulnerability = checklist.CHECKLIST.STIGS.iSTIG.VULN.Where(y => vulnid == y.STIG_DATA.Where(z => z.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA).FirstOrDefault();
+                        foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
+                            if (vulnerability != null) {
+                                // grab pertinent information
+                                vulnRecord = new VulnerabilityReport();
+                                vulnRecord.systemGroupId = checklist.systemGroupId;
+                                vulnRecord.artifactId = checklist.InternalId;
+                                vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                                logger.Info("Getting Artifact {2} data for updateChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+
+                                // get the hostname from the ASSET record
+                                if (!string.IsNullOrEmpty(checklist.CHECKLIST.ASSET.HOST_NAME)) 
+                                    vulnRecord.hostname = checklist.CHECKLIST.ASSET.HOST_NAME;
+                                else 
+                                    vulnRecord.hostname = "Unknown";
+
+                                // start getting the vulnerability detailed information
+                                vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                                vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
+                                vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
+                                vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                                vulnRecord.comments = vulnerability.COMMENTS;
+                                vulnRecord.details = vulnerability.FINDING_DETAILS;
+                                vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
+                                vulnRecord.discussion = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Discuss").FirstOrDefault().ATTRIBUTE_DATA;
+                                vulnRecord.fixText = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Fix_Text").FirstOrDefault().ATTRIBUTE_DATA;
+                                vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
+                                vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
+                                vulnRecord.status = vulnerability.STATUS;
+                                // get all the list of CCIs
+                                foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
+                                    // add each one of these, from 0 to N of them
+                                    vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
+                                }
+                                logger.Info("Adding Artifact {2} to the list for updateChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                                vulnReport.Add(vulnRecord); // add it to the listing
+                            }
+                        } // for each VULN record
+                        // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
+                    }
+                }
+                catch (Exception ex) {
+                    // log it here
+                    logger.Error(ex, "Error saving updated scoring information for artifactId {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                }
+            };
+
             logger.Info("Report Message Client: setting up the OpenRMF System Delete for Report subscription");
             IAsyncSubscription asyncSystemDelete = c.SubscribeAsync("openrmf.system.delete", deleteSystemData);
             logger.Info("Report Message Client: setting up the OpenRMF Nessus ACAS Patch Scan for Report subscription");
             IAsyncSubscription asyncSystemPatchScan = c.SubscribeAsync("openrmf.system.patchscan", updateSystemPatchScanData);
+            logger.Info("Report Message Client: setting up the OpenRMF new vulnerabilities subscriptions");
+            IAsyncSubscription asyncNew = c.SubscribeAsync("openrmf.checklist.save.new", newChecklistVulnerabilities);
+            logger.Info("Report Message Client: setting up the OpenRMF update vulnerabilities subscriptions");
+            IAsyncSubscription asyncUpdate = c.SubscribeAsync("openrmf.checklist.save.update", updateChecklistVulnerabilities);
         }
         private static ObjectId GetInternalId(string id)
         {
@@ -158,6 +250,31 @@ namespace openrmf_msg_report
             if (!ObjectId.TryParse(id, out internalId))
                 internalId = ObjectId.Empty;
             return internalId;
+        }
+
+        /// <summary>
+        /// Return a checklist record based on the ID requested. Uses a request/reply 
+        /// method to get a checklist and then score it.
+        /// </summary>
+        /// <param name="conn">The database connection</param>
+        /// <param name="id">The id of the checklist record to return</param>
+        /// <returns>A checklist record, if found</returns>
+        private static Artifact GetChecklist(IConnection conn, string id){
+            try {
+                Artifact art = new Artifact();
+                Msg reply = conn.Request("openrmf.checklist.read", Encoding.UTF8.GetBytes(id), 10000); // publish to get this Artifact checklist back via ID
+                // save the reply and get back the checklist to score
+                if (reply != null) {
+                    art = JsonConvert.DeserializeObject<Artifact>(Compression.DecompressString(Encoding.UTF8.GetString(reply.Data)));
+                    return art;
+                }
+                return art;
+            }
+            catch (Exception ex) {
+                Console.WriteLine(string.Format("openrmf-msg-score Error in GetChecklist with Artifact id {0}. Message: {1}",
+                    id, ex.Message));
+                throw ex;
+            }
         }
     }
 }
