@@ -4,7 +4,7 @@ using System;
 
 namespace tests.Models
 {
-    public class ArtifactTests
+    public class NessusPatchDataTests
     {
         [Fact]
         public void Test_NewNessusPatchDataIsValid()

@@ -7,9 +7,14 @@ using System.Threading.Tasks;
 namespace openrmf_msg_report.Data {
     public interface IReportRepository
     {
-        Task<IEnumerable<NessusPatchData>> GetAllPatchScanDataBySystemGroup(string id);
+        Task<IEnumerable<NessusPatchData>> GetAllPatchScanDataBySystemGroup(string systemGroupId);
         Task<NessusPatchData> AddPatchScanData(NessusPatchData data);
-        Task<bool> DeleteAllSystemData(string id);
-        Task<bool> DeletePatchScanDataBySystemGroup(string id);
+        Task<bool> DeleteAllSystemData(string systemGroupId);
+        Task<bool> DeletePatchScanDataBySystemGroup(string systemGroupId);
+        Task<VulnerabilityReport> AddChecklistVulnerabilityData(VulnerabilityReport data);
+        Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data);
+        Task<bool> DeleteChecklistVulnerabilityDataBySystemGroup(string systemGroupId);
+        Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string internalId);
+        Task<IEnumerable<VulnerabilityReport>> FindChecklistVulnerabilityData(string systemGroupId, string vulnid);
     }
 }

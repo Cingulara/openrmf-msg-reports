@@ -161,10 +161,59 @@ namespace openrmf_msg_report
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     if (checklist != null && checklist.CHECKLIST != null) {
                         
-                        
-                        logger.Info("Saving new vulnerability information for artifactId {0}", checklist.InternalId.ToString());
-                        
-                        logger.Info("Vulnerability information successfully saved for artifactId {0}", checklist.InternalId.ToString());
+                        List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
+                        VulnerabilityReport vulnRecord; // put the individual record into
+                        foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
+
+                            // grab pertinent information
+                            vulnRecord = new VulnerabilityReport();
+                            vulnRecord.systemGroupId = checklist.systemGroupId;
+                            vulnRecord.artifactId = checklist.InternalId;
+                            vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                            logger.Info("Getting Artifact {2} data for newChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+
+                            // get the hostname from the ASSET record
+                            if (!string.IsNullOrEmpty(checklist.CHECKLIST.ASSET.HOST_NAME)) 
+                                vulnRecord.hostname = checklist.CHECKLIST.ASSET.HOST_NAME;
+                            else 
+                                vulnRecord.hostname = "Unknown";
+
+                            // start getting the vulnerability detailed information
+                            vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
+                            vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
+                            vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                            vulnRecord.comments = vulnerability.COMMENTS;
+                            vulnRecord.details = vulnerability.FINDING_DETAILS;
+                            vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
+                            vulnRecord.discussion = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Discuss").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.fixText = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Fix_Text").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.status = vulnerability.STATUS;
+                            // get all the list of CCIs
+                            foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
+                                // add each one of these, from 0 to N of them
+                                vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
+                            }
+                            logger.Info("Adding Artifact {2} to the list for newChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                            vulnReport.Add(vulnRecord); // add it to the listing
+
+                        } // for each VULN record
+                        // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
+
+                        // setup the MondoDB connection
+                        Settings s = new Settings();
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        // setup the database repo for reports to delete from
+                        ReportRepository _reportRepo = new ReportRepository(s);
+                        VulnerabilityReport result;
+                        foreach (VulnerabilityReport record in vulnReport) {
+                            result = _reportRepo.AddChecklistVulnerabilityData(record).Result;
+                            if (result != null) 
+                                logger.Info("Added vulnerability information on system {0} checklist {1} vulnerability {2}", result.systemGroupId, result.artifactId, result.vulnid);
+                        }
                     }
                 }
                 catch (Exception ex) {
@@ -187,46 +236,55 @@ namespace openrmf_msg_report
                     if (checklist != null && checklist.CHECKLIST != null) {
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                         VulnerabilityReport vulnRecord; // put the individual record into
-                        //VULN vulnerability;
-                        //vulnerability = checklist.CHECKLIST.STIGS.iSTIG.VULN.Where(y => vulnid == y.STIG_DATA.Where(z => z.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA).FirstOrDefault();
                         foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
-                            if (vulnerability != null) {
-                                // grab pertinent information
-                                vulnRecord = new VulnerabilityReport();
-                                vulnRecord.systemGroupId = checklist.systemGroupId;
-                                vulnRecord.artifactId = checklist.InternalId;
-                                vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
-                                logger.Info("Getting Artifact {2} data for updateChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                            // grab pertinent information
+                            vulnRecord = new VulnerabilityReport();
+                            vulnRecord.systemGroupId = checklist.systemGroupId;
+                            vulnRecord.artifactId = checklist.InternalId;
+                            vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                            logger.Info("Getting Artifact {2} data for updateChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
 
-                                // get the hostname from the ASSET record
-                                if (!string.IsNullOrEmpty(checklist.CHECKLIST.ASSET.HOST_NAME)) 
-                                    vulnRecord.hostname = checklist.CHECKLIST.ASSET.HOST_NAME;
-                                else 
-                                    vulnRecord.hostname = "Unknown";
+                            // get the hostname from the ASSET record
+                            if (!string.IsNullOrEmpty(checklist.CHECKLIST.ASSET.HOST_NAME)) 
+                                vulnRecord.hostname = checklist.CHECKLIST.ASSET.HOST_NAME;
+                            else 
+                                vulnRecord.hostname = "Unknown";
 
-                                // start getting the vulnerability detailed information
-                                vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
-                                vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
-                                vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
-                                vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
-                                vulnRecord.comments = vulnerability.COMMENTS;
-                                vulnRecord.details = vulnerability.FINDING_DETAILS;
-                                vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
-                                vulnRecord.discussion = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Discuss").FirstOrDefault().ATTRIBUTE_DATA;
-                                vulnRecord.fixText = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Fix_Text").FirstOrDefault().ATTRIBUTE_DATA;
-                                vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
-                                vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
-                                vulnRecord.status = vulnerability.STATUS;
-                                // get all the list of CCIs
-                                foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
-                                    // add each one of these, from 0 to N of them
-                                    vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
-                                }
-                                logger.Info("Adding Artifact {2} to the list for updateChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
-                                vulnReport.Add(vulnRecord); // add it to the listing
+                            // start getting the vulnerability detailed information
+                            vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
+                            vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
+                            vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                            vulnRecord.comments = vulnerability.COMMENTS;
+                            vulnRecord.details = vulnerability.FINDING_DETAILS;
+                            vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
+                            vulnRecord.discussion = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Discuss").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.fixText = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Fix_Text").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
+                            vulnRecord.status = vulnerability.STATUS;
+                            // get all the list of CCIs
+                            foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
+                                // add each one of these, from 0 to N of them
+                                vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
                             }
+                            logger.Info("Adding Artifact {2} to the list for updateChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                            vulnReport.Add(vulnRecord); // add it to the listing
                         } // for each VULN record
                         // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
+
+                        // setup the MondoDB connection
+                        Settings s = new Settings();
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        // setup the database repo for reports to delete from
+                        ReportRepository _reportRepo = new ReportRepository(s);
+                        bool result;
+                        foreach (VulnerabilityReport record in vulnReport) {
+                            result = _reportRepo.UpdateChecklistVulnerabilityData(record).Result;
+                            if (result) 
+                                logger.Info("Updated vulnerability information on system {0} checklist {1} vulnerability {2}", record.systemGroupId, record.artifactId, record.vulnid);
+                        }
                     }
                 }
                 catch (Exception ex) {
