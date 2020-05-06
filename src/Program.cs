@@ -157,7 +157,7 @@ namespace openrmf_msg_report
                     logger.Info("New NATS subject: {0}", natsargs.Message.Subject);
                     logger.Info("New NATS data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
                     Artifact checklist = GetChecklist(c, Encoding.UTF8.GetString(natsargs.Message.Data));
-                    if (checklist.CHECKLIST == null)
+                    if (!string.IsNullOrEmpty(checklist.rawChecklist))
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     if (checklist != null && checklist.CHECKLIST != null) {
                         
@@ -169,8 +169,11 @@ namespace openrmf_msg_report
                             vulnRecord = new VulnerabilityReport();
                             vulnRecord.systemGroupId = checklist.systemGroupId;
                             vulnRecord.artifactId = checklist.InternalId;
+                            vulnRecord.created = checklist.created;
+                            vulnRecord.createdBy = checklist.createdBy;
                             vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
-                            logger.Info("Getting Artifact {2} data for newChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                            logger.Info("Getting Artifact {2} data for newChecklistVulnerabilities(system: {0}, vulnid: {1}) successfully", 
+                                checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
 
                             // get the hostname from the ASSET record
                             if (!string.IsNullOrEmpty(checklist.CHECKLIST.ASSET.HOST_NAME)) 
@@ -194,9 +197,10 @@ namespace openrmf_msg_report
                             // get all the list of CCIs
                             foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
                                 // add each one of these, from 0 to N of them
-                                vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
+                                if (!string.IsNullOrEmpty(stig.ATTRIBUTE_DATA)) vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
                             }
-                            logger.Info("Adding Artifact {2} to the list for newChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
+                            logger.Info("Adding Artifact {2} to the list for newChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", 
+                                checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
                             vulnReport.Add(vulnRecord); // add it to the listing
 
                         } // for each VULN record
@@ -263,10 +267,14 @@ namespace openrmf_msg_report
                             vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
                             vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
                             vulnRecord.status = vulnerability.STATUS;
+                            vulnRecord.created = checklist.created;
+                            vulnRecord.createdBy = checklist.createdBy;
+                            vulnRecord.updatedBy = checklist.updatedBy;
+                            vulnRecord.updatedOn = checklist.updatedOn;
                             // get all the list of CCIs
                             foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
                                 // add each one of these, from 0 to N of them
-                                vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
+                                if (!string.IsNullOrEmpty(stig.ATTRIBUTE_DATA)) vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
                             }
                             logger.Info("Adding Artifact {2} to the list for updateChecklistVulnerabilities (system: {0}, vulnid: {1}) successfully", checklist.systemGroupId, vulnRecord.vulnid, checklist.InternalId.ToString());
                             vulnReport.Add(vulnRecord); // add it to the listing
