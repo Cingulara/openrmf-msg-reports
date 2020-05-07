@@ -95,6 +95,42 @@ namespace openrmf_msg_report
                 }
             };
 
+            // update all report data when a checklist is deleted
+            // openrmf.system.delete -- delete all system data for reporting based on the payload of System ID
+            // get the ID, query for the system, delete all data
+            EventHandler<MsgHandlerEventArgs> deleteChecklistVulnerabilities = (sender, natsargs) =>
+            {
+                try {
+                    // print the message
+                    logger.Info("NATS Msg Checklists: {0}", natsargs.Message.Subject);
+                    logger.Info("NATS Msg system data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
+                    
+                    // setup the MondoDB connection
+                    Settings s = new Settings();
+                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    // setup the database repo for reports to delete from
+                    ReportRepository _reportRepo = new ReportRepository(s);
+                    string artifactId = Encoding.UTF8.GetString(natsargs.Message.Data);
+                    if (!string.IsNullOrEmpty(artifactId) ) {
+                        bool deleted = _reportRepo.DeleteChecklistVulnerabilityData(artifactId).Result;
+                        if (deleted) {
+                            logger.Info("Successfully deleted the checklist vulnerability data for Artifact Id {0}", artifactId);
+                        } 
+                        else {
+                            logger.Warn("Did not delete the checklist vulnerability data for Artifact Id {0}. Maybe there is no data yet?", artifactId);
+                        }
+                    }
+                    else {
+                        logger.Warn("Warning: No Artifact ID {0} passed in when deleting Checklist Vulnerability Data", natsargs.Message.Subject);
+                    }
+                }
+                catch (Exception ex) {
+                    // log it here
+                    logger.Error(ex, "Error retrieving system group record for system group");
+                }
+            };
+
             // update the Nessus ACAS Patch Data listing in the database
             // openrmf.system.patchscan -- take the system group ID from the data and process away
             EventHandler<MsgHandlerEventArgs> updateSystemPatchScanData = (sender, natsargs) =>
@@ -309,6 +345,9 @@ namespace openrmf_msg_report
             IAsyncSubscription asyncNew = c.SubscribeAsync("openrmf.checklist.save.new", newChecklistVulnerabilities);
             logger.Info("Report Message Client: setting up the OpenRMF update vulnerabilities subscriptions");
             IAsyncSubscription asyncUpdate = c.SubscribeAsync("openrmf.checklist.save.update", updateChecklistVulnerabilities);
+            logger.Info("Report Message Client: setting up the OpenRMF delete checklist vulnerabilities subscriptions");
+            IAsyncSubscription asyncChecklistDelete = c.SubscribeAsync("openrmf.checklist.delete", deleteChecklistVulnerabilities);
+
         }
         private static ObjectId GetInternalId(string id)
         {

@@ -157,6 +157,23 @@ namespace openrmf_msg_report.Data {
             }
         }
 
+        public async Task<bool> DeleteChecklistVulnerabilityData(string artifactId)
+        {
+            try
+            {
+                DeleteResult actionResult 
+                    = await _context.VulnerabilityReports.DeleteManyAsync(
+                        Builders<VulnerabilityReport>.Filter.Eq("artifactId", artifactId));
+
+                return actionResult.IsAcknowledged 
+                    && actionResult.DeletedCount > 0;
+            }
+            catch (Exception ex)
+            {
+                // log or manage the exception
+                throw ex;
+            }
+        }
 
         public async Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string artifactId, string vulnid){
             try
