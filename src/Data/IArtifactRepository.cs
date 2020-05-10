@@ -5,9 +5,12 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace openrmf_msg_report.Data {
-    public interface ISystemGroupRepository
+    public interface IArtifactRepository
     {
-        Task<SystemGroup> GetSystemGroup(string id);
-        Task<IEnumerable<SystemGroup>> GetAllSystemGroups();
+        // return checklist records for a given system
+        Task<IEnumerable<Artifact>> GetSystemArtifacts(string system);
+
+        // get a particular Artifact record
+        Task<Artifact> GetArtifact(string id);
     }
 }

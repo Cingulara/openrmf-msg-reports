@@ -118,7 +118,8 @@ namespace openrmf_msg_report.Data {
                 }
                 else
                 {
-                    return false;
+                    // make it a new one first
+                    data = await AddChecklistVulnerabilityData(data);
                 }
                 var filter = Builders<VulnerabilityReport>.Filter.Eq(s => s.InternalId, data.InternalId);
                 var actionResult = await _context.VulnerabilityReports.ReplaceOneAsync(filter, data);
