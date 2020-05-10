@@ -512,9 +512,9 @@ namespace openrmf_msg_report
             logger.Info("Report Message Client: setting up the OpenRMF delete checklist vulnerabilities subscriptions");
             IAsyncSubscription asyncChecklistDelete = c.SubscribeAsync("openrmf.checklist.delete", deleteChecklistVulnerabilities);
             // refresh data subscriptions
-            logger.Info("Report Message Client: setting up the OpenRMF refresh Vulnerability data subscription");
+            logger.Info("Report Message Client: setting up the OpenRMF refresh Vulnerability Data subscription");
             IAsyncSubscription asyncRefreshVulnerabilities = c.SubscribeAsync("openrmf.report.refresh.vulnerabilitydata", refreshVulnerabilityData);
-            logger.Info("Report Message Client: setting up the OpenRMF refresh Vulnerability data subscription");
+            logger.Info("Report Message Client: setting up the OpenRMF refresh Nessus Patch Data subscription");
             IAsyncSubscription asyncRefreshNessusPatchData = c.SubscribeAsync("openrmf.report.refresh.nessuspatchdata", refreshNessusPatchData);
         }
 
