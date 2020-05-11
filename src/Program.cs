@@ -276,13 +276,20 @@ namespace openrmf_msg_report
                     // print the message
                     logger.Info(natsargs.Message.Subject);
                     logger.Info(Encoding.UTF8.GetString(natsargs.Message.Data));
+                    // setup the Checklist database repo
                     Settings s = new Settings();
                     s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
                     s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
-                    // setup the database repo
                     ArtifactRepository _artifactRepo = new ArtifactRepository(s);
+                    // setup the database repo for reports to delete from
+                    // setup the MondoDB connection
+                    s = new Settings();
+                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    ReportRepository _reportRepo = new ReportRepository(s);
                     // get the checklist
                     Artifact checklist = _artifactRepo.GetArtifact(Encoding.UTF8.GetString(natsargs.Message.Data)).Result;
+
                     if (checklist.CHECKLIST == null)
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
@@ -330,12 +337,6 @@ namespace openrmf_msg_report
                         } // for each VULN record
                         // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
 
-                        // setup the MondoDB connection
-                        s = new Settings();
-                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
-                        // setup the database repo for reports to delete from
-                        ReportRepository _reportRepo = new ReportRepository(s);
                         bool result;
                         foreach (VulnerabilityReport record in vulnReport) {
                             result = _reportRepo.UpdateChecklistVulnerabilityData(record).Result;
@@ -404,6 +405,8 @@ namespace openrmf_msg_report
             };
 
 
+            // update al checklist vulnerability data per checklist per system
+            // openrmf.report.refresh.vulnerabilitydata
             EventHandler<MsgHandlerEventArgs> refreshVulnerabilityData = (sender, natsargs) =>
             {
                 try {
@@ -430,6 +433,8 @@ namespace openrmf_msg_report
                         // setup the database repo for reports to delete from
                         ReportRepository _reportRepo = new ReportRepository(s);
                         bool result;
+                        List<VulnerabilityReport> vulnReport; // put all findings into a list and roll out
+                        VulnerabilityReport vulnRecord; // put the individual record into
 
                         foreach (SystemGroup sg in systems) {
                             checklists = _artifactRepo.GetSystemArtifacts(sg.InternalId.ToString()).Result;
@@ -438,8 +443,7 @@ namespace openrmf_msg_report
                                 if (art.CHECKLIST == null)
                                     art.CHECKLIST = ChecklistLoader.LoadChecklist(art.rawChecklist);
                                 if (art != null && art.CHECKLIST != null) {
-                                    List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
-                                    VulnerabilityReport vulnRecord; // put the individual record into
+                                    vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                                     foreach (VULN vulnerability in art.CHECKLIST.STIGS.iSTIG.VULN) {
                                         // grab pertinent information
                                         vulnRecord = new VulnerabilityReport();
@@ -479,16 +483,12 @@ namespace openrmf_msg_report
                                         }
                                         logger.Info("Adding Artifact {2} to the list for refreshVulnerabilityData (system: {0}, vulnid: {1}) successfully", 
                                             art.systemGroupId, vulnRecord.vulnid, art.InternalId.ToString());
-                                        vulnReport.Add(vulnRecord); // add it to the listing
-                                    } // for each VULN record
-
-                                    // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
-                                    foreach (VulnerabilityReport record in vulnReport) {
-                                        result = _reportRepo.UpdateChecklistVulnerabilityData(record).Result;
+                                        //vulnReport.Add(vulnRecord); // add it to the listing
+                                        result = _reportRepo.UpdateChecklistVulnerabilityData(vulnRecord).Result;
                                         if (result) 
                                             logger.Info("refreshVulnerabilityData Updated vulnerability information on system {0} checklist {1} vulnerability {2}", 
-                                                record.systemGroupId, record.artifactId, record.vulnid);
-                                    }
+                                                vulnRecord.systemGroupId, vulnRecord.artifactId, vulnRecord.vulnid);
+                                    } // for each VULN record
                                 } // if this checklist in the list of artifacts for this systemGroup is not empty
                             } // foreach artifact in the list for the System Group
                         } // foreach System Group in the database
