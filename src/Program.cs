@@ -411,7 +411,7 @@ namespace openrmf_msg_report
             {
                 try {
                     // print the message
-                    logger.Info("NATS Report Refresh Nessus Patch Data: {0}", natsargs.Message.Subject);
+                    logger.Info("NATS Report Refresh Vulnerability Data: {0}", natsargs.Message.Subject);
                     IEnumerable<SystemGroup> systems;
                     // setup the MondoDB connection
                     Settings s = new Settings();
@@ -426,6 +426,7 @@ namespace openrmf_msg_report
                     systems = _systemGroupRepo.GetAllSystemGroups().Result;
 
                     if (systems != null && systems.Count() > 0) {
+                        logger.Info("NATS Report Refresh Vulnerability Data going through {0} systems", systems.Count().ToString());
                         // setup the Report MondoDB connection
                         s = new Settings();
                         s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
@@ -437,13 +438,18 @@ namespace openrmf_msg_report
                         VulnerabilityReport vulnRecord; // put the individual record into
 
                         foreach (SystemGroup sg in systems) {
+                            logger.Info("NATS Report Refresh Vulnerability Data going through system group {0}", sg.InternalId.ToString());
                             checklists = _artifactRepo.GetSystemArtifacts(sg.InternalId.ToString()).Result;
                             foreach (Artifact art in checklists) {
+                                logger.Info("NATS Report Refresh Vulnerability Data going through system group {0} artifact {1}", 
+                                    sg.InternalId.ToString(), art.InternalId.ToString());
                                 // // get the checklist
-                                if (art.CHECKLIST == null)
+                                if (!string.IsNullOrEmpty(art.rawChecklist))
                                     art.CHECKLIST = ChecklistLoader.LoadChecklist(art.rawChecklist);
-                                if (art != null && art.CHECKLIST != null) {
+                                if (art != null && art.CHECKLIST != null && !string.IsNullOrEmpty(art.rawChecklist)) {
                                     vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
+                                    logger.Info("NATS Report Refresh Vulnerability Data cycling through vulnerabilities for system group {0} artifact {1}", 
+                                        sg.InternalId.ToString(), art.InternalId.ToString());
                                     foreach (VULN vulnerability in art.CHECKLIST.STIGS.iSTIG.VULN) {
                                         // grab pertinent information
                                         vulnRecord = new VulnerabilityReport();
