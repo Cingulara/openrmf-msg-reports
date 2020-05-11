@@ -116,11 +116,6 @@ namespace openrmf_msg_report.Data {
                 if (oldVulnData != null){
                     data.InternalId = oldVulnData.InternalId;
                 }
-                else
-                {
-                    // make it a new one first
-                    data = await AddChecklistVulnerabilityData(data);
-                }
                 var filter = Builders<VulnerabilityReport>.Filter.Eq(s => s.InternalId, data.InternalId);
                 var actionResult = await _context.VulnerabilityReports.ReplaceOneAsync(filter, data);
                 if (actionResult.ModifiedCount == 0) { //never was entered, so Insert
