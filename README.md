@@ -33,5 +33,3 @@ Messaging service to respond to internal API requests to receive Nessus, artifac
 
 ## connecting to the database collection straight
 ~/mongodb/bin/mongo 'mongodb://openrmfreports:openrmf1234!@localhost/openrmfreports?authSource=admin'
-
-## List out the Artifacts you have inserted/updated
