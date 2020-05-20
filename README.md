@@ -2,8 +2,13 @@
 
 # openrmf-msg-reports
 Messaging service to respond to internal API requests to receive Nessus, artifact and checklist information using a NATS Request/Reply scenario.
-* openrmf.checklist.save
-* openrmf.checklist.update
+* openrmf.system.delete - delete all reports for anything related to this system across all records and collections
+* openrmf.system.patchscan - updated the ACAS Patch data for this system
+* openrmf.checklist.save.new - add the vulnerability listing for this new checklist
+* openrmf.checklist.save.update - update the vulnerability listing for this new checklist
+* openrmf.checklist.delete - delete the vulnerability listing for this new checklist
+* openrmf.report.refresh.vulnerabilitydata - refresh the vulnerability data for all checklists across all systems
+* openrmf.report.refresh.nessuspatchdata - refresh the Nessus ACAS patch data across all systems
 
 ## Running the NATS docker images
 * docker run --rm --name nats-main -p 4222:4222 -p 6222:6222 -p 8222:8222 nats:2.1.2-linux
