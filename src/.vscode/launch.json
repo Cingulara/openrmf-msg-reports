@@ -1,0 +1,30 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+        {
+            "name": ".NET Core Launch (console)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/bin/Debug/netcoreapp2.2/openrmf-msg-report.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "console": "internalConsole",
+            "stopAtEntry": false,
+            "internalConsoleOptions": "openOnSessionStart",
+            "env": {
+                "SYSTEMMONGODBCONNECTION": "mongodb://openrmf:openrmf1234!@localhost/openrmf?authSource=admin",
+                "SYSTEMMONGODB": "openrmf",
+                "REPORTMONGODBCONNECTION": "mongodb://openrmfreport:openrmf1234!@localhost/openrmfreport?authSource=admin",
+                "REPORTMONGODB": "openrmfreport",
+                "NATSSERVERURL": "nats://127.0.0.1:4222"
+            },
+        },
+        {
+            "name": ".NET Core Attach",
+            "type": "coreclr",
+            "request": "attach",
+            "processId": "${command:pickProcess}"
+        }
+    ,]
+}
