@@ -228,6 +228,12 @@ namespace openrmf_msg_report
                             vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistType)) {
+                                vulnRecord.checklistType = ChecklistLoader.SanitizeChecklistType(vulnRecord.checklistType);
+                            }
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistRelease)) {
+                                vulnRecord.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(vulnRecord.checklistRelease);
+                            }
                             vulnRecord.comments = vulnerability.COMMENTS;
                             vulnRecord.details = vulnerability.FINDING_DETAILS;
                             vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
@@ -556,6 +562,9 @@ namespace openrmf_msg_report
                                 report.severityJustification = vulnAttributes["severity_justification"];
                                 report.updatedBy = Guid.Parse(vulnAttributes["updatedBy"]);
                                 report.updatedOn = DateTime.Now;
+                                // clean up old data if needed
+                                report.checklistType = ChecklistLoader.SanitizeChecklistType(report.checklistType);
+                                report.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(report.checklistRelease);
                                 // save the data passed to us
                                 bool updated = _reportRepo.UpdateChecklistVulnerabilityData(report).Result;
                             } else {
