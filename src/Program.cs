@@ -228,6 +228,12 @@ namespace openrmf_msg_report
                             vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistType)) {
+                                vulnRecord.checklistType = ChecklistLoader.SanitizeChecklistType(vulnRecord.checklistType);
+                            }
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistRelease)) {
+                                vulnRecord.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(vulnRecord.checklistRelease);
+                            }
                             vulnRecord.comments = vulnerability.COMMENTS;
                             vulnRecord.details = vulnerability.FINDING_DETAILS;
                             vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
@@ -268,8 +274,8 @@ namespace openrmf_msg_report
                 }
             };
 
-            // Setup an updated Score record based on an updated checklist uploaded
-            // This is called from the Upload API to say "hey I have an updated checklist, you may want to update your scoring"
+            // Update Checklist Vulnerability records based on an updated checklist uploaded
+            // This is called from the Save API to say "hey I have updated a VULN record, you may want to update your reports"
             EventHandler<MsgHandlerEventArgs> updateChecklistVulnerabilities = (sender, natsargs) =>
             {
                 try {
@@ -315,6 +321,12 @@ namespace openrmf_msg_report
                             vulnRecord.checklistVersion = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistRelease = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
                             vulnRecord.checklistType = checklist.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistType)) {
+                                vulnRecord.checklistType = ChecklistLoader.SanitizeChecklistType(vulnRecord.checklistType);
+                            }
+                            if (!string.IsNullOrEmpty(vulnRecord.checklistRelease)) {
+                                vulnRecord.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(vulnRecord.checklistRelease);
+                            }
                             vulnRecord.comments = vulnerability.COMMENTS;
                             vulnRecord.details = vulnerability.FINDING_DETAILS;
                             vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
@@ -470,6 +482,13 @@ namespace openrmf_msg_report
                                         vulnRecord.checklistVersion = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
                                         vulnRecord.checklistRelease = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
                                         vulnRecord.checklistType = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
+                                        if (!string.IsNullOrEmpty(vulnRecord.checklistType)) {
+                                            vulnRecord.checklistType = ChecklistLoader.SanitizeChecklistType(vulnRecord.checklistType);
+                                        }
+                                        if (!string.IsNullOrEmpty(vulnRecord.checklistRelease)) {
+                                            vulnRecord.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(vulnRecord.checklistRelease);
+                                        }
+
                                         vulnRecord.comments = vulnerability.COMMENTS;
                                         vulnRecord.details = vulnerability.FINDING_DETAILS;
                                         vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
@@ -506,17 +525,78 @@ namespace openrmf_msg_report
                 }
             };
 
+            // Setup an updated Score record based on an updated checklist uploaded
+            // This is called from the Upload API to say "hey I have an updated checklist, you may want to update your scoring"
+            EventHandler<MsgHandlerEventArgs> updateSingleVulnerability = (sender, natsargs) =>
+            {
+                try {
+                    // print the message
+                    logger.Info(natsargs.Message.Subject);
+                    logger.Info(Encoding.UTF8.GetString(natsargs.Message.Data));
+                    // setup the Checklist database repo
+                    Settings s = new Settings();
+                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
+                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    ArtifactRepository _artifactRepo = new ArtifactRepository(s);
+                    // setup the database repo for reports to delete from
+                    // setup the MondoDB connection
+                    s = new Settings();
+                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
+                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    ReportRepository _reportRepo = new ReportRepository(s);
+                    // get the data
+                    Dictionary<string, string> vulnAttributes = JsonConvert.DeserializeObject<Dictionary<string, string>>(Compression.DecompressString(Encoding.UTF8.GetString(natsargs.Message.Data)));
+                    if (vulnAttributes != null) {
+                        Artifact checklist = _artifactRepo.GetArtifact(vulnAttributes["artifactId"]).Result;
+                        // process it
+                        if (checklist != null) {
+                            // get the current vulnerability
+                            VulnerabilityReport report = _reportRepo.GetChecklistVulnerabilityData(vulnAttributes["systemGroupId"], 
+                                vulnAttributes["artifactId"], vulnAttributes["vulnId"]).Result;
+                            // update its values
+                            if (report != null) {
+                                report.details = vulnAttributes["finding_details"];
+                                report.status = vulnAttributes["status"];
+                                report.comments = vulnAttributes["comments"];
+                                report.severityOverride = vulnAttributes["severity_override"];
+                                report.severityJustification = vulnAttributes["severity_justification"];
+                                report.updatedBy = Guid.Parse(vulnAttributes["updatedBy"]);
+                                report.updatedOn = DateTime.Now;
+                                // clean up old data if needed
+                                report.checklistType = ChecklistLoader.SanitizeChecklistType(report.checklistType);
+                                report.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(report.checklistRelease);
+                                // save the data passed to us
+                                bool updated = _reportRepo.UpdateChecklistVulnerabilityData(report).Result;
+                            } else {
+                                logger.Warn(string.Format("Vulnerability Record not found to update. Re-run vulnerability refresh for system {0} to ensure all data is accurate."),
+                                    vulnAttributes["systemGroupId"]);
+                                return;
+                            }
+                            logger.Info("Updating Vulnerability updateSingleVulnerability (system: {0}, checklist: {1}, vulnid: {2}) successfully", vulnAttributes["systemGroupId"], 
+                                vulnAttributes["artifactId"], vulnAttributes["vulnId"]);
+                        }
+                    } // if vulnAttributes not null
+                }
+                catch (Exception ex) {
+                    // log it here
+                    logger.Error(ex, "Error saving updated scoring information for artifactId {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
+                }
+            };
+
             // setup of all subscriber agents and methods
             logger.Info("Report Message Client: setting up the OpenRMF System Delete for Report subscription");
             IAsyncSubscription asyncSystemDelete = c.SubscribeAsync("openrmf.system.delete", deleteSystemData);
             logger.Info("Report Message Client: setting up the OpenRMF Nessus ACAS Patch Scan for Report subscription");
             IAsyncSubscription asyncSystemPatchScan = c.SubscribeAsync("openrmf.system.patchscan", updateSystemPatchScanData);
             logger.Info("Report Message Client: setting up the OpenRMF new vulnerabilities subscriptions");
-            IAsyncSubscription asyncNew = c.SubscribeAsync("openrmf.checklist.save.new", newChecklistVulnerabilities);
+            IAsyncSubscription asyncNewChecklist = c.SubscribeAsync("openrmf.checklist.save.new", newChecklistVulnerabilities);
             logger.Info("Report Message Client: setting up the OpenRMF update vulnerabilities subscriptions");
-            IAsyncSubscription asyncUpdate = c.SubscribeAsync("openrmf.checklist.save.update", updateChecklistVulnerabilities);
+            IAsyncSubscription asyncUpdateChecklist = c.SubscribeAsync("openrmf.checklist.save.update", updateChecklistVulnerabilities);
             logger.Info("Report Message Client: setting up the OpenRMF delete checklist vulnerabilities subscriptions");
             IAsyncSubscription asyncChecklistDelete = c.SubscribeAsync("openrmf.checklist.delete", deleteChecklistVulnerabilities);
+            logger.Info("Report Message Client: setting up the OpenRMF update single vulnerability subscriptions");
+            IAsyncSubscription asyncVulnerabilityUpdate = c.SubscribeAsync("openrmf.checklist.save.vulnerability.update", updateSingleVulnerability);
+
             // refresh data subscriptions
             logger.Info("Report Message Client: setting up the OpenRMF refresh Vulnerability Data subscription");
             IAsyncSubscription asyncRefreshVulnerabilities = c.SubscribeAsync("openrmf.report.refresh.vulnerabilitydata", refreshVulnerabilityData);

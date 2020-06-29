@@ -175,5 +175,41 @@ namespace openrmf_msg_report.Classes
             }
             return vulns;
         }
+
+        /// <summary>
+        /// Clean up the Checklist Type / STIG Type string/title and save the shortened one
+        /// </summary>
+        /// <param name="checklistType">The checklist type title read from the CKL XML file</param>
+        /// <returns>
+        /// A shortened cleaned-up Checklist Type string.
+        /// </returns>
+        public static string SanitizeChecklistType(string checklistType) {
+            string myType = checklistType;
+            myType = myType.Replace("Security Technical Implementation Guide", "STIG");
+            myType = myType.Replace("Windows", "WIN");
+            myType = myType.Replace("Application Security and Development", "ASD");
+            myType = myType.Replace("Microsoft Internet Explorer", "MSIE");
+            myType = myType.Replace("Red Hat Enterprise Linux", "REL");
+            myType = myType.Replace("MS SQL Server", "MSSQL");
+            myType = myType.Replace("Server", "SVR");
+            myType = myType.Replace("Workstation", "WRK");
+
+            return myType;
+        }
+
+        /// <summary>
+        /// Clean up the Checklist Release / STIG Release string/title and save the shortened one
+        /// </summary>
+        /// <param name="checklistRelease">The checklist release read from the CKL XML file</param>
+        /// <returns>
+        /// A shortened cleaned-up Checklist Release string.
+        /// </returns>
+        public static string SanitizeChecklistRelease(string checklistRelease) {
+            string myRelease = checklistRelease;
+            myRelease = myRelease.Replace("Release: ", "R"); // i.e. R11, R2 for the release number
+            myRelease = myRelease.Replace("Benchmark Date:","dated");
+
+            return myRelease;
+        }
     }
 }
