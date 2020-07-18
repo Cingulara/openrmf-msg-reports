@@ -71,8 +71,10 @@ namespace openrmf_msg_report
                     
                     // setup the MondoDB connection
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                    }
                     // setup the database repo for reports to delete from
                     ReportRepository _reportRepo = new ReportRepository(s);
                     string systemGroupId = Encoding.UTF8.GetString(natsargs.Message.Data);
@@ -107,8 +109,10 @@ namespace openrmf_msg_report
                     
                     // setup the MondoDB connection
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                    }
                     // setup the database repo for reports to delete from
                     ReportRepository _reportRepo = new ReportRepository(s);
                     string artifactId = Encoding.UTF8.GetString(natsargs.Message.Data);
@@ -143,15 +147,19 @@ namespace openrmf_msg_report
                     SystemGroup sg;
                     // setup the MondoDB connection
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     // setup the database repo
                     SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
                     sg = _systemGroupRepo.GetSystemGroup(Encoding.UTF8.GetString(natsargs.Message.Data)).Result;
                     if (sg != null) {
                         // use the Report database connection
-                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                            s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                            s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                        }
                         ReportRepository _reportRepo = new ReportRepository(s);
                         NessusPatchData result;
                         if (!string.IsNullOrEmpty(sg.rawNessusFile)) {
@@ -193,8 +201,10 @@ namespace openrmf_msg_report
                     logger.Info("New NATS subject: {0}", natsargs.Message.Subject);
                     logger.Info("New NATS data: {0}",Encoding.UTF8.GetString(natsargs.Message.Data));
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     // setup the database repo
                     ArtifactRepository _artifactRepo = new ArtifactRepository(s);
                     // get the checklist
@@ -256,8 +266,10 @@ namespace openrmf_msg_report
 
                         // setup the MondoDB connection
                         s = new Settings();
-                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                            s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                            s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                        }
                         // setup the database repo for reports to delete from
                         ReportRepository _reportRepo = new ReportRepository(s);
                         VulnerabilityReport result;
@@ -284,14 +296,18 @@ namespace openrmf_msg_report
                     logger.Info(Encoding.UTF8.GetString(natsargs.Message.Data));
                     // setup the Checklist database repo
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     ArtifactRepository _artifactRepo = new ArtifactRepository(s);
                     // setup the database repo for reports to delete from
                     // setup the MondoDB connection
                     s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                    }
                     ReportRepository _reportRepo = new ReportRepository(s);
                     // get the checklist
                     Artifact checklist = _artifactRepo.GetArtifact(Encoding.UTF8.GetString(natsargs.Message.Data)).Result;
@@ -373,15 +389,19 @@ namespace openrmf_msg_report
                     IEnumerable<SystemGroup> systems;
                     // setup the MondoDB connection
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     // setup the database repo
                     SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
                     systems = _systemGroupRepo.GetAllSystemGroups().Result;
                     if (systems != null && systems.Count() > 0) {
                         // use the Report database connection
-                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                            s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                            s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                        }
                         ReportRepository _reportRepo = new ReportRepository(s);
                         NessusPatchData result;
                         foreach(SystemGroup sg in systems) {
@@ -427,8 +447,10 @@ namespace openrmf_msg_report
                     IEnumerable<SystemGroup> systems;
                     // setup the MondoDB connection
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     // setup the database repo
                     SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
                     // setup the database repo
@@ -441,8 +463,10 @@ namespace openrmf_msg_report
                         logger.Info("NATS Report Refresh Vulnerability Data going through {0} systems", systems.Count().ToString());
                         // setup the Report MondoDB connection
                         s = new Settings();
-                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                            s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                            s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                        }
                         // setup the database repo for reports to delete from
                         ReportRepository _reportRepo = new ReportRepository(s);
                         bool result;
@@ -535,14 +559,18 @@ namespace openrmf_msg_report
                     logger.Info(Encoding.UTF8.GetString(natsargs.Message.Data));
                     // setup the Checklist database repo
                     Settings s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("SYSTEMMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
+                    }
                     ArtifactRepository _artifactRepo = new ArtifactRepository(s);
                     // setup the database repo for reports to delete from
                     // setup the MondoDB connection
                     s = new Settings();
-                    s.ConnectionString = Environment.GetEnvironmentVariable("REPORTMONGODBCONNECTION");
-                    s.Database = Environment.GetEnvironmentVariable("REPORTMONGODB");
+                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
+                        s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
+                        s.Database = Environment.GetEnvironmentVariable("REPORTDB");
+                    }
                     ReportRepository _reportRepo = new ReportRepository(s);
                     // get the data
                     Dictionary<string, string> vulnAttributes = JsonConvert.DeserializeObject<Dictionary<string, string>>(Compression.DecompressString(Encoding.UTF8.GetString(natsargs.Message.Data)));
