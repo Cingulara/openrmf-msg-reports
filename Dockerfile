@@ -26,4 +26,4 @@ RUN addgroup --system --gid 1001 openrmfgroup \
 RUN chown openrmfuser:openrmfgroup /app
 
 USER 1001
-ENTRYPOINT ["./openrmf-msg-reports"]
+ENTRYPOINT ["./openrmf-msg-report"]
