@@ -1,5 +1,5 @@
-VERSION ?= 1.02.01
-NAME ?= "openrmf-msg-report"
+VERSION ?= 1.03.00
+NAME ?= "openrmf-msg-reports"
 AUTHOR ?= "Dale Bingham"
 NO_CACHE ?= true
 DOCKERHUB_ACCOUNT ?= cingulara
