@@ -21,9 +21,9 @@ COPY --from=build-env /app/out .
 COPY src/nlog.config /app/nlog.config
 
 # Create a group and user
-RUN addgroup --system --gid 1001 openrmfprogroup \
-&& adduser --system -u 1001 --ingroup openrmfprogroup --shell /bin/sh openrmfprouser
-RUN chown openrmfprouser:openrmfprogroup /app
+RUN addgroup --system --gid 1001 openrmfgroup \
+&& adduser --system -u 1001 --ingroup openrmfgroup --shell /bin/sh openrmfuser
+RUN chown openrmfuser:openrmfprogroup /app
 
 USER 1001
 ENTRYPOINT ["./openrmf-msg-reports"]
