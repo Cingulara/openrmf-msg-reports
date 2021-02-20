@@ -31,4 +31,4 @@ jobs:
     - name: Container image scan
       uses: Azure/container-scan@v0
       with:
-        image-name: localbuild/openrmf-api-report:latest
+        image-name: localbuild/openrmf-msg-report:latest
