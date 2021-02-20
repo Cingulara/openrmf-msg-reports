@@ -23,7 +23,7 @@ COPY src/nlog.config /app/nlog.config
 # Create a group and user
 RUN addgroup --system --gid 1001 openrmfgroup \
 && adduser --system -u 1001 --ingroup openrmfgroup --shell /bin/sh openrmfuser
-RUN chown openrmfuser:openrmfprogroup /app
+RUN chown openrmfuser:openrmfgroup /app
 
 USER 1001
 ENTRYPOINT ["./openrmf-msg-reports"]
