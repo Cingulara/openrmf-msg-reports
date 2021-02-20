@@ -314,6 +314,8 @@ namespace openrmf_msg_report
 
                     if (checklist.CHECKLIST == null)
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
+                    if (checklist.CHECKLIST.STIGS.iSTIG.VULN.Count == 0)
+                        checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
                     if (checklist != null && checklist.CHECKLIST != null) {
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
