@@ -5,8 +5,8 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>openrmf_msg_report</RootNamespace>
     <ProjectGuid>{ae875f94-eee4-48ef-b27c-0cc3159dbf2c}</ProjectGuid>
-    <Version>1.02.01</Version>
-    <InformationalVersion>This is the OpenRMF Tool Messaging API for reading data and generating report records via messaging from Cingulara</InformationalVersion>
+    <Version>1.06.00</Version>
+    <InformationalVersion>This is the OpenRMF Tool Messaging Service for reading data and generating report records via messaging from Cingulara</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>

@@ -314,6 +314,8 @@ namespace openrmf_msg_report
 
                     if (checklist.CHECKLIST == null)
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
+                    if (checklist.CHECKLIST.STIGS.iSTIG.VULN.Count == 0)
+                        checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
                     if (checklist != null && checklist.CHECKLIST != null) {
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
@@ -366,9 +368,18 @@ namespace openrmf_msg_report
                         // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
 
                         bool result;
+                        VulnerabilityReport resultRecord;
+                        // delete all the checklist report records as we only report on the latest and greatest ones
+                        result = _reportRepo.DeleteChecklistVulnerabilityData(checklist.InternalIdString).Result;
+                        if (result) {
+                            logger.Warn("Successfully removed old vulnerability report data on system {0} checklist {1}", checklist.systemGroupId, checklist.InternalIdString);
+                        }
+                        else {
+                            logger.Warn("Error removing old vulnerability report data on system {0} checklist {1}", checklist.systemGroupId, checklist.InternalIdString);
+                        }
                         foreach (VulnerabilityReport record in vulnReport) {
-                            result = _reportRepo.UpdateChecklistVulnerabilityData(record).Result;
-                            if (result) 
+                            resultRecord = _reportRepo.AddChecklistVulnerabilityData(record).Result;
+                            if (resultRecord != null) 
                                 logger.Info("Updated vulnerability information on system {0} checklist {1} vulnerability {2}", record.systemGroupId, record.artifactId, record.vulnid);
                         }
                     }
