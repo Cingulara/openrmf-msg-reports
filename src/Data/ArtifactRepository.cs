@@ -34,31 +34,15 @@ namespace openrmf_msg_report.Data {
         //
         public async Task<Artifact> GetArtifact(string id)
         {
-            try
-            {
                 return await _context.Artifacts.Find(artifact => artifact.InternalId == GetInternalId(id)).FirstOrDefaultAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
     
         #region Systems
 
         public async Task<IEnumerable<Artifact>> GetSystemArtifacts(string systemGroupId)
         {
-            try
-            {
                 var query = await _context.Artifacts.FindAsync(artifact => artifact.systemGroupId == systemGroupId);
                 return query.ToList();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
         #endregion
     }

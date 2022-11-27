@@ -20,17 +20,9 @@ namespace openrmf_msg_report.Data {
         // get all patch scan data for a given System and return the listing
         public async Task<IEnumerable<NessusPatchData>> GetAllPatchScanDataBySystemGroup(string systemGroupId)
         {
-            try
-            {
                 //ObjectId internalId = GetInternalId(id);
                 return await _context.ACASScanReports
                         .Find(data => data.systemGroupId == systemGroupId).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         private ObjectId GetInternalId(string id)
@@ -45,72 +37,38 @@ namespace openrmf_msg_report.Data {
         // add a single Patch Scan Data record
         public async Task<NessusPatchData> AddPatchScanData(NessusPatchData data)
         {
-            try
-            {
                 await _context.ACASScanReports.InsertOneAsync(data);
                 return data;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         // delete all report data across all collections when a system is deleted
         public async Task<bool> DeleteAllSystemData(string systemGroupId)
         {
-            try
-            {
                 DeleteResult actionResult 
                     = await _context.ACASScanReports.DeleteManyAsync(
                         Builders<NessusPatchData>.Filter.Eq("systemGroupId", systemGroupId));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         // delete just the ACAS / Patch scan data for a system only
         public async Task<bool> DeletePatchScanDataBySystemGroup(string systemGroupId)
         {
-            try
-            {
                 DeleteResult actionResult 
                     = await _context.ACASScanReports.DeleteManyAsync(
                         Builders<NessusPatchData>.Filter.Eq("systemGroupId", systemGroupId));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         public async Task<VulnerabilityReport> AddChecklistVulnerabilityData(VulnerabilityReport data){
-            try
-            {
                 await _context.VulnerabilityReports.InsertOneAsync(data);
                 return data;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         public async Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data){
-            try
-            {
                 // get the old InternalId as we are going off InternalId and SystemGroupId for this
                 var oldVulnData = await GetChecklistVulnerabilityData(data.systemGroupId, data.artifactId, data.vulnid);
                 if (oldVulnData != null){
@@ -121,80 +79,42 @@ namespace openrmf_msg_report.Data {
                 if (actionResult.ModifiedCount == 0) { //never was entered, so Insert
                     data.created = DateTime.Now;
                     var result = await AddChecklistVulnerabilityData(data);
-                    if (result.InternalId != null && !result.InternalId.ToString().StartsWith("0000"))
+                    if (!result.InternalId.ToString().StartsWith("0000"))
                         return true;
                     else
                         return false;
                 }
                 return actionResult.IsAcknowledged && actionResult.ModifiedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         public async Task<bool> DeleteChecklistVulnerabilityDataBySystemGroup(string systemGroupId)
         {
-            try
-            {
                 DeleteResult actionResult 
                     = await _context.VulnerabilityReports.DeleteManyAsync(
                         Builders<VulnerabilityReport>.Filter.Eq("systemGroupId", systemGroupId));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         public async Task<bool> DeleteChecklistVulnerabilityData(string artifactId)
         {
-            try
-            {
                 DeleteResult actionResult 
                     = await _context.VulnerabilityReports.DeleteManyAsync(
                         Builders<VulnerabilityReport>.Filter.Eq("artifactId", artifactId));
 
                 return actionResult.IsAcknowledged 
                     && actionResult.DeletedCount > 0;
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         public async Task<VulnerabilityReport> GetChecklistVulnerabilityData(string systemGroupId, string artifactId, string vulnid){
-            try
-            {
                 return await _context.VulnerabilityReports.Find(v => v.vulnid == vulnid && v.artifactId == artifactId && v.systemGroupId == systemGroupId).FirstOrDefaultAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
         
         public async Task<IEnumerable<VulnerabilityReport>> FindChecklistVulnerabilityData(string systemGroupId, string vulnid){
-            try
-            {
                 //ObjectId internalId = GetInternalId(id);
                 return await _context.VulnerabilityReports
                         .Find(data => data.vulnid == vulnid && data.systemGroupId == systemGroupId).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
     }
 }

@@ -1,4 +1,4 @@
-VERSION ?= 1.08.01
+VERSION ?= 1.08.02
 NAME ?= "openrmf-msg-reports"
 AUTHOR ?= "Dale Bingham"
 NO_CACHE ?= true
