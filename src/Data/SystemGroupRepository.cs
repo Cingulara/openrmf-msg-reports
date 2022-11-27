@@ -29,31 +29,15 @@ namespace openrmf_msg_report.Data {
         // query after Id or InternalId (BSonId value)
         public async Task<SystemGroup> GetSystemGroup(string id)
         {
-            try
-            {
                 ObjectId internalId = GetInternalId(id);
                 return await _context.SystemGroups
                                 .Find(SystemGroup => SystemGroup.InternalId == internalId).FirstOrDefaultAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
         // query all System Group records
         public async Task<IEnumerable<SystemGroup>> GetAllSystemGroups()
         {
-            try
-            {
                 return await _context.SystemGroups.Find(_ => true).ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                // log or manage the exception
-                throw ex;
-            }
         }
 
     }
