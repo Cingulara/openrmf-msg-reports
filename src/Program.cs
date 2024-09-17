@@ -240,13 +240,30 @@ namespace openrmf_msg_report
                     if (!string.IsNullOrEmpty(checklist.rawChecklist))
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
-                    if (checklist != null && checklist.CHECKLIST != null) {                        
+                    if (checklist != null && checklist.CHECKLIST != null) {    
+                        // check for is web or database v1.12
+                        bool bWebDB = false;
+                        string site = "";
+                        string instance = "";
+                        // we only need to figure this out one time
+                        if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_OR_DATABASE) && checklist.CHECKLIST.ASSET.WEB_OR_DATABASE == "true") {
+                            bWebDB = true;                                
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_SITE))
+                                site = checklist.CHECKLIST.ASSET.WEB_DB_SITE.Trim();
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE))
+                                    instance = checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE.Trim();
+                        }
+                                            
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                         VulnerabilityReport vulnRecord; // put the individual record into
                         foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
 
                             // grab pertinent information
                             vulnRecord = new VulnerabilityReport();
+                            // generated above just use the data
+                            vulnRecord.isWebDatabase = bWebDB;
+                            vulnRecord.webDatabaseSite = site;
+                            vulnRecord.webDatabaseInstance = instance;
                             vulnRecord.systemGroupId = checklist.systemGroupId;
                             vulnRecord.artifactId = checklist.InternalId.ToString();
                             vulnRecord.created = checklist.created;
@@ -343,12 +360,28 @@ namespace openrmf_msg_report
                     if (checklist.CHECKLIST.STIGS.iSTIG.VULN.Count == 0)
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
-                    if (checklist != null && checklist.CHECKLIST != null) {
+                    if (checklist != null && checklist.CHECKLIST != null) {  
+                        // check for is web or database v1.12
+                        bool bWebDB = false;
+                        string site = "";
+                        string instance = "";
+                        // we only need to figure this out one time
+                        if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_OR_DATABASE) && checklist.CHECKLIST.ASSET.WEB_OR_DATABASE == "true") {
+                            bWebDB = true;                                
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_SITE))
+                                site = checklist.CHECKLIST.ASSET.WEB_DB_SITE.Trim();
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE))
+                                    instance = checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE.Trim();
+                        }
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                         VulnerabilityReport vulnRecord; // put the individual record into
                         foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
                             // grab pertinent information
                             vulnRecord = new VulnerabilityReport();
+                            // generated above just use the data
+                            vulnRecord.isWebDatabase = bWebDB;
+                            vulnRecord.webDatabaseSite = site;
+                            vulnRecord.webDatabaseInstance = instance;
                             vulnRecord.systemGroupId = checklist.systemGroupId;
                             vulnRecord.artifactId = checklist.InternalId.ToString();
                             vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
