@@ -188,14 +188,18 @@ namespace openrmf_msg_report.Classes
         /// </returns>
         public static string SanitizeChecklistType(string checklistType) {
             string myType = checklistType;
-            myType = myType.Replace("Security Technical Implementation Guide", "STIG");
-            myType = myType.Replace("Windows", "WIN");
-            myType = myType.Replace("Application Security and Development", "ASD");
-            myType = myType.Replace("Microsoft Internet Explorer", "MSIE");
-            myType = myType.Replace("Red Hat Enterprise Linux", "REL");
-            myType = myType.Replace("MS SQL Server", "MSSQL");
-            myType = myType.Replace("Server", "SVR");
-            myType = myType.Replace("Workstation", "WRK");
+            myType = myType.Replace("MS Windows","Windows")
+                .Replace("SCAP Benchmark","").Replace(" SCAP","").Replace("Cisco IOS-XE","Cisco IOS XE").Replace("Cisco NX-OS", "Cisco NX OS")
+                .Replace("Cisco IOS-XR","Cisco IOS XR").Replace("Microsoft Windows","Windows").Replace("Microsoft Windows Defender", "Microsoft Defender")
+                .Replace("Windows Defender", "Microsoft Defender").Replace("Windows Server 2012 MS", "Windows Server 2012/2012 R2 Member Server")
+                .Replace("Windows Firewall with Advanced Security", "Windows Defender Firewall with Advanced Security")
+                .Replace("Microsoft Windows Defender Firewall with Advanced Security", "Windows Defender Firewall with Advanced Security")
+                .Replace("Microsoft Defender Firewall with Advanced Security", "Windows Defender Firewall with Advanced Security")
+                .Replace("Security Technical Implementation Guide", "STIG").Replace("Windows 7", "WIN 7").Replace("Windows 8", "WIN 8")
+                .Replace("Windows 10", "WIN 10").Replace("Windows 11", "WIN 11").Replace("Windows Server", "WIN SVR").Replace("Windows 2008", "WIN 2008")
+                .Replace("Application Security and Development", "ASD").Replace("Windows 2012", "WIN 2012")
+                .Replace("Microsoft Internet Explorer", "MSIE").Replace("Red Hat Enterprise Linux", "REL").Replace("MS SQL Server", "MSSQL")
+                .Replace("Server", "SVR").Replace("Workstation", "WRK").Trim();
 
             return myType;
         }
