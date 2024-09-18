@@ -190,7 +190,6 @@ namespace openrmf_msg_report
                             s.Database = Environment.GetEnvironmentVariable("REPORTDB");
                         }
                         ReportRepository _reportRepo = new ReportRepository(s);
-                        NessusPatchData result;
                         if (!string.IsNullOrEmpty(sg.rawNessusFile)) {
                             List<NessusPatchData> patchDataList = NessusPatchLoader.LoadPatchData(sg.rawNessusFile);
                             if (patchDataList != null && patchDataList.Count > 0) {
@@ -199,10 +198,10 @@ namespace openrmf_msg_report
                                 // put in all the new data
                                 foreach (NessusPatchData data in patchDataList) {
                                     data.systemGroupId = sg.InternalId.ToString();
-                                    result = _reportRepo.AddPatchScanData(data).Result;
-                                    if (result != null) {
-                                        logger.Info("Report Message Client: Added scan plugin {0} for system group {1}", result.pluginId, result.systemGroupId);
-                                    }
+                                }
+                                var result = _reportRepo.AddPatchScanDataBulk(patchDataList).Result; 
+                                if (result != null) {
+                                    logger.Info("Report Message Client: Added scan plugin data for system group {0}", sg.InternalId.ToString());
                                 }
                             } else {
                                 logger.Warn("Warning: Nessus Data loading was empty for System Group {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
@@ -241,13 +240,30 @@ namespace openrmf_msg_report
                     if (!string.IsNullOrEmpty(checklist.rawChecklist))
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
-                    if (checklist != null && checklist.CHECKLIST != null) {                        
+                    if (checklist != null && checklist.CHECKLIST != null) {    
+                        // check for is web or database v1.12
+                        bool bWebDB = false;
+                        string site = "";
+                        string instance = "";
+                        // we only need to figure this out one time
+                        if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_OR_DATABASE) && checklist.CHECKLIST.ASSET.WEB_OR_DATABASE == "true") {
+                            bWebDB = true;                                
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_SITE))
+                                site = checklist.CHECKLIST.ASSET.WEB_DB_SITE.Trim();
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE))
+                                    instance = checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE.Trim();
+                        }
+                                            
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                         VulnerabilityReport vulnRecord; // put the individual record into
                         foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
 
                             // grab pertinent information
                             vulnRecord = new VulnerabilityReport();
+                            // generated above just use the data
+                            vulnRecord.isWebDatabase = bWebDB;
+                            vulnRecord.webDatabaseSite = site;
+                            vulnRecord.webDatabaseInstance = instance;
                             vulnRecord.systemGroupId = checklist.systemGroupId;
                             vulnRecord.artifactId = checklist.InternalId.ToString();
                             vulnRecord.created = checklist.created;
@@ -301,12 +317,10 @@ namespace openrmf_msg_report
                         }
                         // setup the database repo for reports to delete from
                         ReportRepository _reportRepo = new ReportRepository(s);
-                        VulnerabilityReport result;
-                        foreach (VulnerabilityReport record in vulnReport) {
-                            result = _reportRepo.AddChecklistVulnerabilityData(record).Result;
-                            if (result != null) 
-                                logger.Info("Added vulnerability information on system {0} checklist {1} vulnerability {2}", result.systemGroupId, result.artifactId, result.vulnid);
-                        }
+                        var result = _reportRepo.AddChecklistVulnerabilityDataBulk(vulnReport);
+                        if (result != null) 
+                            logger.Info("Added vulnerability information on system package {0} checklist {1} vulnerabilities", checklist.systemGroupId, checklist.InternalIdString);
+                        // }
                     }
                 }
                 catch (Exception ex) {
@@ -346,12 +360,28 @@ namespace openrmf_msg_report
                     if (checklist.CHECKLIST.STIGS.iSTIG.VULN.Count == 0)
                         checklist.CHECKLIST = ChecklistLoader.LoadChecklist(checklist.rawChecklist);
                     // process it
-                    if (checklist != null && checklist.CHECKLIST != null) {
+                    if (checklist != null && checklist.CHECKLIST != null) {  
+                        // check for is web or database v1.12
+                        bool bWebDB = false;
+                        string site = "";
+                        string instance = "";
+                        // we only need to figure this out one time
+                        if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_OR_DATABASE) && checklist.CHECKLIST.ASSET.WEB_OR_DATABASE == "true") {
+                            bWebDB = true;                                
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_SITE))
+                                site = checklist.CHECKLIST.ASSET.WEB_DB_SITE.Trim();
+                            if (!string.IsNullOrWhiteSpace(checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE))
+                                    instance = checklist.CHECKLIST.ASSET.WEB_DB_INSTANCE.Trim();
+                        }
                         List<VulnerabilityReport> vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
                         VulnerabilityReport vulnRecord; // put the individual record into
                         foreach (VULN vulnerability in checklist.CHECKLIST.STIGS.iSTIG.VULN) {
                             // grab pertinent information
                             vulnRecord = new VulnerabilityReport();
+                            // generated above just use the data
+                            vulnRecord.isWebDatabase = bWebDB;
+                            vulnRecord.webDatabaseSite = site;
+                            vulnRecord.webDatabaseInstance = instance;
                             vulnRecord.systemGroupId = checklist.systemGroupId;
                             vulnRecord.artifactId = checklist.InternalId.ToString();
                             vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
@@ -397,20 +427,17 @@ namespace openrmf_msg_report
                         // save every single VULN record with the vuln number, artifactId and systemGroupId into the database
 
                         bool result;
-                        VulnerabilityReport resultRecord;
                         // delete all the checklist report records as we only report on the latest and greatest ones
                         result = _reportRepo.DeleteChecklistVulnerabilityData(checklist.InternalIdString).Result;
                         if (result) {
-                            logger.Warn("Successfully removed old vulnerability report data on system {0} checklist {1}", checklist.systemGroupId, checklist.InternalIdString);
+                            logger.Info("Successfully removed old vulnerability report data on system {0} checklist {1}", checklist.systemGroupId, checklist.InternalIdString);
                         }
                         else {
                             logger.Warn("Error removing old vulnerability report data on system {0} checklist {1}", checklist.systemGroupId, checklist.InternalIdString);
                         }
-                        foreach (VulnerabilityReport record in vulnReport) {
-                            resultRecord = _reportRepo.AddChecklistVulnerabilityData(record).Result;
-                            if (resultRecord != null) 
-                                logger.Info("Updated vulnerability information on system {0} checklist {1} vulnerability {2}", record.systemGroupId, record.artifactId, record.vulnid);
-                        }
+                        var bulkResult = _reportRepo.AddChecklistVulnerabilityDataBulk(vulnReport);
+                        if (bulkResult != null) 
+                            logger.Info("Added vulnerability information on system package {0} checklist {1} vulnerabilities", checklist.systemGroupId, checklist.InternalIdString);
                     }
                 }
                 catch (Exception ex) {
@@ -443,7 +470,6 @@ namespace openrmf_msg_report
                             s.Database = Environment.GetEnvironmentVariable("REPORTDB");
                         }
                         ReportRepository _reportRepo = new ReportRepository(s);
-                        NessusPatchData result;
                         foreach(SystemGroup sg in systems) {
                             if (!string.IsNullOrEmpty(sg.rawNessusFile)) {
                                 List<NessusPatchData> patchDataList = NessusPatchLoader.LoadPatchData(sg.rawNessusFile);
@@ -453,10 +479,10 @@ namespace openrmf_msg_report
                                     // put in all the new data
                                     foreach (NessusPatchData data in patchDataList) {
                                         data.systemGroupId = sg.InternalId.ToString();
-                                        result = _reportRepo.AddPatchScanData(data).Result;
-                                        if (result != null) {
-                                            logger.Info("refreshNessusPatchData: Added scan plugin {0} for system group {1}", result.pluginId, result.systemGroupId);
-                                        }
+                                    }
+                                    var result = _reportRepo.AddPatchScanDataBulk(patchDataList).Result; 
+                                    if (result != null) {
+                                        logger.Info("Report Message Client: Added scan plugin data for system group {0}", sg.InternalId.ToString());
                                     }
                                 } else {
                                     logger.Warn("Warning: Nessus Data loading was empty for refreshNessusPatchData System Group {0}", Encoding.UTF8.GetString(natsargs.Message.Data));
@@ -469,119 +495,6 @@ namespace openrmf_msg_report
                     else {
                         logger.Warn("Warning: bad no System Group Ids in refreshNessusPatchData");
                     }
-                }
-                catch (Exception ex) {
-                    // log it here
-                    logger.Error(ex, "Error retrieving all system group records for refreshNessusPatchData");
-                }
-            };
-
-
-            // update al checklist vulnerability data per checklist per system
-            // openrmf.report.refresh.vulnerabilitydata
-            EventHandler<MsgHandlerEventArgs> refreshVulnerabilityData = (sender, natsargs) =>
-            {
-                try {
-                    // print the message
-                    logger.Info("NATS Report Refresh Vulnerability Data: {0}", natsargs.Message.Subject);
-                    IEnumerable<SystemGroup> systems;
-                    // setup the MondoDB connection
-                    Settings s = new Settings();
-                    if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("SYSTEMDBTYPE")) || Environment.GetEnvironmentVariable("SYSTEMDBTYPE").ToLower() == "mongo") {
-                        s.ConnectionString = Environment.GetEnvironmentVariable("SYSTEMDBCONNECTION");
-                        s.Database = Environment.GetEnvironmentVariable("SYSTEMDB");
-                    }
-                    // setup the database repo
-                    SystemGroupRepository _systemGroupRepo = new SystemGroupRepository(s);
-                    // setup the database repo
-                    ArtifactRepository _artifactRepo = new ArtifactRepository(s);
-                    // setup the variable to get all checklists to cycle through
-                    IEnumerable<Artifact> checklists;
-                    systems = _systemGroupRepo.GetAllSystemGroups().Result;
-
-                    if (systems != null && systems.Count() > 0) {
-                        logger.Info("NATS Report Refresh Vulnerability Data going through {0} systems", systems.Count().ToString());
-                        // setup the Report MondoDB connection
-                        s = new Settings();
-                        if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("REPORTDBTYPE")) || Environment.GetEnvironmentVariable("REPORTDBTYPE").ToLower() == "mongo") {
-                            s.ConnectionString = Environment.GetEnvironmentVariable("REPORTDBCONNECTION");
-                            s.Database = Environment.GetEnvironmentVariable("REPORTDB");
-                        }
-                        // setup the database repo for reports to delete from
-                        ReportRepository _reportRepo = new ReportRepository(s);
-                        bool result;
-                        List<VulnerabilityReport> vulnReport; // put all findings into a list and roll out
-                        VulnerabilityReport vulnRecord; // put the individual record into
-
-                        foreach (SystemGroup sg in systems) {
-                            logger.Info("NATS Report Refresh Vulnerability Data going through system group {0}", sg.InternalId.ToString());
-                            checklists = _artifactRepo.GetSystemArtifacts(sg.InternalId.ToString()).Result;
-                            foreach (Artifact art in checklists) {
-                                logger.Info("NATS Report Refresh Vulnerability Data going through system group {0} artifact {1}", 
-                                    sg.InternalId.ToString(), art.InternalId.ToString());
-                                // // get the checklist
-                                if (!string.IsNullOrEmpty(art.rawChecklist))
-                                    art.CHECKLIST = ChecklistLoader.LoadChecklist(art.rawChecklist);
-                                if (art != null && art.CHECKLIST != null && !string.IsNullOrEmpty(art.rawChecklist)) {
-                                    vulnReport =  new List<VulnerabilityReport>(); // put all findings into a list and roll out
-                                    logger.Info("NATS Report Refresh Vulnerability Data cycling through vulnerabilities for system group {0} artifact {1}", 
-                                        sg.InternalId.ToString(), art.InternalId.ToString());
-                                    foreach (VULN vulnerability in art.CHECKLIST.STIGS.iSTIG.VULN) {
-                                        // grab pertinent information
-                                        vulnRecord = new VulnerabilityReport();
-                                        vulnRecord.systemGroupId = art.systemGroupId;
-                                        vulnRecord.artifactId = art.InternalId.ToString();
-                                        vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
-                                        logger.Info("Getting Artifact {2} data for refreshVulnerabilityData(system: {0}, vulnid: {1}) successfully", 
-                                            art.systemGroupId, vulnRecord.vulnid, art.InternalId.ToString());
-
-                                        // get the hostname from the ASSET record
-                                        if (!string.IsNullOrEmpty(art.CHECKLIST.ASSET.HOST_NAME)) 
-                                            vulnRecord.hostname = art.CHECKLIST.ASSET.HOST_NAME;
-                                        else 
-                                            vulnRecord.hostname = "Unknown";
-
-                                        // start getting the vulnerability detailed information
-                                        vulnRecord.vulnid = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Num").FirstOrDefault().ATTRIBUTE_DATA;
-                                        vulnRecord.checklistVersion = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "version").FirstOrDefault().SID_DATA;
-                                        vulnRecord.checklistRelease = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "releaseinfo").FirstOrDefault().SID_DATA;
-                                        vulnRecord.checklistType = art.CHECKLIST.STIGS.iSTIG.STIG_INFO.SI_DATA.Where(x => x.SID_NAME == "title").FirstOrDefault().SID_DATA;
-                                        if (!string.IsNullOrEmpty(vulnRecord.checklistType)) {
-                                            vulnRecord.checklistType = ChecklistLoader.SanitizeChecklistType(vulnRecord.checklistType);
-                                        }
-                                        if (!string.IsNullOrEmpty(vulnRecord.checklistRelease)) {
-                                            vulnRecord.checklistRelease = ChecklistLoader.SanitizeChecklistRelease(vulnRecord.checklistRelease);
-                                        }
-
-                                        vulnRecord.comments = vulnerability.COMMENTS;
-                                        vulnRecord.details = vulnerability.FINDING_DETAILS;
-                                        vulnRecord.checkContent = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Check_Content").FirstOrDefault().ATTRIBUTE_DATA;                                
-                                        vulnRecord.discussion = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Vuln_Discuss").FirstOrDefault().ATTRIBUTE_DATA;
-                                        vulnRecord.fixText = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Fix_Text").FirstOrDefault().ATTRIBUTE_DATA;
-                                        vulnRecord.ruleTitle = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Rule_Title").FirstOrDefault().ATTRIBUTE_DATA;
-                                        vulnRecord.severity = vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "Severity").FirstOrDefault().ATTRIBUTE_DATA;
-                                        vulnRecord.status = vulnerability.STATUS;
-                                        vulnRecord.created = art.created;
-                                        vulnRecord.createdBy = art.createdBy;
-                                        vulnRecord.updatedBy = art.updatedBy;
-                                        vulnRecord.updatedOn = art.updatedOn;
-                                        // get all the list of CCIs
-                                        foreach(STIG_DATA stig in vulnerability.STIG_DATA.Where(cc => cc.VULN_ATTRIBUTE == "CCI_REF").ToList()) {
-                                            // add each one of these, from 0 to N of them
-                                            if (!string.IsNullOrEmpty(stig.ATTRIBUTE_DATA)) vulnRecord.cciList.Add(stig.ATTRIBUTE_DATA);
-                                        }
-                                        logger.Info("Adding Artifact {2} to the list for refreshVulnerabilityData (system: {0}, vulnid: {1}) successfully", 
-                                            art.systemGroupId, vulnRecord.vulnid, art.InternalId.ToString());
-                                        //vulnReport.Add(vulnRecord); // add it to the listing
-                                        result = _reportRepo.UpdateChecklistVulnerabilityData(vulnRecord).Result;
-                                        if (result) 
-                                            logger.Info("refreshVulnerabilityData Updated vulnerability information on system {0} checklist {1} vulnerability {2}", 
-                                                vulnRecord.systemGroupId, vulnRecord.artifactId, vulnRecord.vulnid);
-                                    } // for each VULN record
-                                } // if this checklist in the list of artifacts for this systemGroup is not empty
-                            } // foreach artifact in the list for the System Group
-                        } // foreach System Group in the database
-                    } // if there are any systems at all
                 }
                 catch (Exception ex) {
                     // log it here
@@ -666,8 +579,6 @@ namespace openrmf_msg_report
             IAsyncSubscription asyncVulnerabilityUpdate = c.SubscribeAsync("openrmf.checklist.save.vulnerability.update", updateSingleVulnerability);
 
             // refresh data subscriptions
-            logger.Info("Report Message Client: setting up the OpenRMF refresh Vulnerability Data subscription");
-            IAsyncSubscription asyncRefreshVulnerabilities = c.SubscribeAsync("openrmf.report.refresh.vulnerabilitydata", refreshVulnerabilityData);
             logger.Info("Report Message Client: setting up the OpenRMF refresh Nessus Patch Data subscription");
             IAsyncSubscription asyncRefreshNessusPatchData = c.SubscribeAsync("openrmf.report.refresh.nessuspatchdata", refreshNessusPatchData);
         }

@@ -41,6 +41,12 @@ namespace openrmf_msg_report.Data {
                 return data;
         }
 
+        public async Task<List<NessusPatchData>> AddPatchScanDataBulk(List<NessusPatchData> items)
+        {
+                await _context.ACASScanReports.InsertManyAsync(items);
+                return items;
+        }
+
         // delete all report data across all collections when a system is deleted
         public async Task<bool> DeleteAllSystemData(string systemGroupId)
         {
@@ -64,8 +70,13 @@ namespace openrmf_msg_report.Data {
         }
 
         public async Task<VulnerabilityReport> AddChecklistVulnerabilityData(VulnerabilityReport data){
-                await _context.VulnerabilityReports.InsertOneAsync(data);
-                return data;
+            await _context.VulnerabilityReports.InsertOneAsync(data);
+            return data;
+        }
+
+        public async Task<List<VulnerabilityReport>> AddChecklistVulnerabilityDataBulk(List<VulnerabilityReport> data) {
+            await _context.VulnerabilityReports.InsertManyAsync(data);
+            return data;
         }
 
         public async Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data){

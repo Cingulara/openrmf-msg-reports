@@ -9,9 +9,11 @@ namespace openrmf_msg_report.Data {
     {
         Task<IEnumerable<NessusPatchData>> GetAllPatchScanDataBySystemGroup(string systemGroupId);
         Task<NessusPatchData> AddPatchScanData(NessusPatchData data);
+        Task<List<NessusPatchData>> AddPatchScanDataBulk(List<NessusPatchData> items);
         Task<bool> DeleteAllSystemData(string systemGroupId);
         Task<bool> DeletePatchScanDataBySystemGroup(string systemGroupId);
         Task<VulnerabilityReport> AddChecklistVulnerabilityData(VulnerabilityReport data);
+        Task<List<VulnerabilityReport>> AddChecklistVulnerabilityDataBulk(List<VulnerabilityReport> data);
         Task<bool> UpdateChecklistVulnerabilityData(VulnerabilityReport data);
         Task<bool> DeleteChecklistVulnerabilityDataBySystemGroup(string systemGroupId);
         Task<bool> DeleteChecklistVulnerabilityData(string artifactId);
